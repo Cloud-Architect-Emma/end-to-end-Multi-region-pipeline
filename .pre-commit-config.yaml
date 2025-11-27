@@ -1,16 +1,40 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+  # ----------------------------
+  # Terraform Infrastructure
+  # ----------------------------
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.104.0
     hooks:
-      - id: trailing-whitespace
-      - id: check-added-large-files
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_tflint
 
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.39.0
+  # ----------------------------
+  # Dockerfile linting
+  # ----------------------------
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
     hooks:
-      - id: markdownlint
+      - id: hadolint
 
+  # ----------------------------
+  # Kubernetes / Helm linting
+  # ----------------------------
+  - repo: https://github.com/stackrox/kube-linter
+    rev: v0.7.6
+    hooks:
+      - id: kube-linter
+
+  # ----------------------------
+  # Security scanning (Checkov, Gitleaks)
+  # ----------------------------
   - repo: https://github.com/bridgecrewio/checkov
-    rev: 3.1.20
+    rev: 3.2.495    # updated to latest stable
     hooks:
-      - id: checkov-run
+      - id: checkov
+        args: ["--directory=.", "--quiet"]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
