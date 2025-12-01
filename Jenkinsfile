@@ -191,8 +191,7 @@ post {
 
 
 
-
- post {
+  post {
     success { echo "Pipeline completed successfully ✅" }
     failure { echo "Pipeline failed ❌" }
     always {
@@ -201,4 +200,4 @@ post {
       }
     }
   }
-} 
+}  // final closing brace for pipeline
