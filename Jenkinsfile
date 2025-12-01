@@ -85,27 +85,26 @@ pipeline {
       }
     }
 
-    stage('Build Docker Image') {
-      steps {
-        sh '''
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
+stage('Build Docker Image') {
+  steps {
+    sh '''
+      SHORT_SHA=$(git rev-parse --short HEAD)
+      IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
 
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "ERROR: IMAGE_TAG is empty, aborting build"
-            exit 1
-          fi
+      if [ -z "$IMAGE_TAG" ]; then
+        echo "ERROR: IMAGE_TAG is empty, aborting build"
+        exit 1
+      fi
 
-          echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
-          echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
+      echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
+      echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
 
-          # Use relative path since repo is already checked out
-          docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
-            -f microservices-demo/src/cartservice/Dockerfile \
-            microservices-demo/src/cartservice/
-        '''
-      }
-    }
+      docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
+        -f microservices-demo/src/cartservice/Dockerfile \
+        microservices-demo/src/cartservice/
+    '''
+  }
+}
 
     stage('Generate SBOM (Syft)') {
       steps {
