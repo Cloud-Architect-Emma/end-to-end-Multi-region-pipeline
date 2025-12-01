@@ -86,19 +86,19 @@ pipeline {
       }
     }
 
-    stage('Build Docker Image') {
-      steps {
-        script {
-          env.IMAGE_TAG = "${params.BRANCH_NAME}-${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
-        }
-        sh '''
-          echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
+stage('Build Docker Image') {
+  steps {
+    sh '''
+      SHORT_SHA=$(git rev-parse --short HEAD)
+      IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
+      echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
+      echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
 
-          docker build -t $SERVICE_NAME:$IMAGE_TAG \
-            multi-region-project/microservices-demo/src/cartservice/
-        '''
-      }
-    }
+      docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
+        multi-region-project/microservices-demo/src/cartservice/
+    '''
+  }
+}
 
     stage('Generate SBOM (Syft)') {
       steps {
