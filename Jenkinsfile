@@ -179,12 +179,14 @@ pipeline {
     }
   }
 
+
   post {
-  success { echo "Pipeline completed successfully ✅" }
-  failure { echo "Pipeline failed ❌" }
-  always {
-    script {
-      archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
+    success { echo "Pipeline completed successfully ✅" }
+    failure { echo "Pipeline failed ❌" }
+    always {
+      script {
+        archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
+      }
     }
   }
-}
+} // closes pipeline
