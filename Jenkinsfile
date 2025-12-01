@@ -178,13 +178,14 @@ pipeline {
     }
   }
 
-  post {
+
+post {
     success { echo "Pipeline completed successfully ✅" }
     failure { echo "Pipeline failed ❌" }
     always {
-      script {
-        archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
-      }
+        node {
+            echo "Archiving build artifacts..."
+            archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
+        }
     }
-  }
-}  // closes pipeline
+}
