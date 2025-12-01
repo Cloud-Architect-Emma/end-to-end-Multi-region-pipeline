@@ -211,11 +211,8 @@ pipeline {
     }
   }   // <-- closes the stages block
 
-post {
-  success {
-    echo "Pipeline completed successfully ✅"
+  post {
+    success { echo "Pipeline completed successfully ✅" }
+    failure { echo "Pipeline failed ❌" }
   }
-  failure {
-    echo "Pipeline failed ❌"
-  }
-}
+}     // <-- closes the pipeline block
