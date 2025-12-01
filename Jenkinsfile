@@ -178,7 +178,6 @@ pipeline {
     }
   }
 
-
 post {
     success { 
         echo "Pipeline completed successfully ✅" 
@@ -187,12 +186,7 @@ post {
         echo "Pipeline failed ❌" 
     }
     always {
-        // Make sure archiveArtifacts runs inside a node context
-        node {
-            echo "Archiving build artifacts..."
-            archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
-        }
+        echo "Archiving build artifacts..."
+        archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
     }
-}
-
 }
