@@ -5,7 +5,6 @@ pipeline {
     AWS_DEFAULT_REGION  = "us-east-1"
     AWS_SECOND_REGION   = "us-east-2"
     SERVICE_NAME        = "cartservice"
-    IMAGE_TAG           = ""
   }
 
   options {
@@ -85,19 +84,27 @@ pipeline {
         '''
       }
     }
- stage('Build Docker Image') {
-  steps {
-    sh '''
-      SHORT_SHA=$(git rev-parse --short HEAD)
-      IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
-      echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
-      echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
 
-      docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
-        multi-region-project/microservices-demo/src/cartservice/
-    '''
-  }
-}
+    stage('Build Docker Image') {
+      steps {
+        sh '''
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "ERROR: IMAGE_TAG is empty, aborting build"
+            exit 1
+          fi
+
+          echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
+          echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
+
+          docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
+            -f end-to-end-Multi-region/microservices-demo/src/cartservice/Dockerfile \
+            end-to-end-Multi-region/microservices-demo/src/cartservice/
+        '''
+      }
+    }
 
     stage('Generate SBOM (Syft)') {
       steps {
@@ -186,6 +193,30 @@ pipeline {
     stage('Archive artifacts') {
       steps {
         archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
+      }
+    }
+
+    stage('Cleanup Docker Images') {
+      steps {
+        sh '''
+          echo "Cleaning up old Docker images..."
+
+          # Remove dangling images
+          docker image prune -f
+
+          # Keep only the latest cartservice:main-* image, remove older ones
+          LATEST=$(docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^cartservice:main-" \
+            | sort -r \
+            | head -n1)
+
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^cartservice:main-" \
+            | grep -v "$LATEST" \
+            | xargs -r docker rmi || true
+
+          echo "Cleanup complete. Latest image preserved: $LATEST"
+        '''
       }
     }
   }
