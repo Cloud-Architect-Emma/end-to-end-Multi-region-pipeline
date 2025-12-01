@@ -48,13 +48,13 @@ pipeline {
         stage('Pre-commit & Format') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     if command -v pre-commit >/dev/null 2>&1; then
                         pre-commit run --all-files || true
                     else
                         echo "pre-commit not installed, skipping"
                     fi
-                    '''
+                    """
                 }
             }
         }
@@ -62,10 +62,10 @@ pipeline {
         stage('Install Dev Dependencies') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     if [ -f package.json ]; then npm ci; fi
                     if [ -f requirements.txt ]; then python -m pip install -r requirements.txt --user; fi
-                    '''
+                    """
                 }
             }
         }
@@ -73,10 +73,10 @@ pipeline {
         stage('Lint') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     if [ -f package.json ]; then npm run lint || true; fi
                     if [ -f requirements.txt ]; then flake8 || true; fi
-                    '''
+                    """
                 }
             }
         }
@@ -84,10 +84,10 @@ pipeline {
         stage('Unit Tests & Coverage') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     if [ -f package.json ]; then npm test --if-present || true; fi
                     if [ -f requirements.txt ]; then pytest --maxfail=1 --disable-warnings -q || true; fi
-                    '''
+                    """
                 }
             }
         }
@@ -98,14 +98,13 @@ pipeline {
                     script {
                         env.IMAGE_TAG = "${params.BRANCH_NAME}-${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
                     }
-                    sh '''
+                    sh """
                     echo "IMAGE_TAG=${IMAGE_TAG}" > .image_tag
 
-                    # Build from the cartservice folder; ensure Dockerfile is found
                     docker build -t ${SERVICE_NAME}:${IMAGE_TAG} \
                       -f muti-region-project/microservices-demo/src/cartservice/Dockerfile \
                       muti-region-project/microservices-demo/src/cartservice
-                    '''
+                    """
                 }
             }
         }
@@ -113,14 +112,14 @@ pipeline {
         stage('Generate SBOM (Syft)') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     IMAGE_TAG=$(cut -d'=' -f2 .image_tag)
                     if command -v syft >/dev/null 2>&1; then
                         syft ${SERVICE_NAME}:${IMAGE_TAG} -o json > .sbom.json || true
                     else
                         echo "Syft not installed in agent image; skipping SBOM"
                     fi
-                    '''
+                    """
                 }
             }
         }
@@ -128,14 +127,14 @@ pipeline {
         stage('Trivy Vulnerability Scan') {
             steps {
                 ansiColor('xterm') {
-                    sh '''
+                    sh """
                     IMAGE_TAG=$(cut -d'=' -f2 .image_tag)
                     if command -v trivy >/dev/null 2>&1; then
                         trivy image --exit-code 0 --severity CRITICAL,HIGH ${SERVICE_NAME}:${IMAGE_TAG} || true
                     else
                         echo "Trivy not installed in agent image; skipping scan"
                     fi
-                    '''
+                    """
                 }
             }
         }
@@ -155,28 +154,25 @@ pipeline {
                         }
 
                         sh """
-                        IMAGE_TAG=\$(cut -d'=' -f2 .image_tag)
+                        IMAGE_TAG=$(cut -d'=' -f2 .image_tag)
 
-                        # Ensure repositories exist (idempotent)
                         aws ecr describe-repositories --region ${AWS_DEFAULT_REGION} --repository-names ${SERVICE_NAME} >/dev/null 2>&1 || \
                             aws ecr create-repository --region ${AWS_DEFAULT_REGION} --repository-name ${SERVICE_NAME}
 
                         aws ecr describe-repositories --region ${AWS_SECOND_REGION} --repository-names ${SERVICE_NAME} >/dev/null 2>&1 || \
                             aws ecr create-repository --region ${AWS_SECOND_REGION} --repository-name ${SERVICE_NAME}
 
-                        # Login to both ECR regions
                         aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
                             docker login --username AWS --password-stdin ${ECR_PRIMARY%/${SERVICE_NAME}}
 
                         aws ecr get-login-password --region ${AWS_SECOND_REGION} | \
                             docker login --username AWS --password-stdin ${ECR_SECONDARY%/${SERVICE_NAME}}
 
-                        # Tag and push
-                        docker tag ${SERVICE_NAME}:\${IMAGE_TAG} \${ECR_PRIMARY}:\${IMAGE_TAG}
-                        docker tag ${SERVICE_NAME}:\${IMAGE_TAG} \${ECR_SECONDARY}:\${IMAGE_TAG}
+                        docker tag ${SERVICE_NAME}:${IMAGE_TAG} ${ECR_PRIMARY}:${IMAGE_TAG}
+                        docker tag ${SERVICE_NAME}:${IMAGE_TAG} ${ECR_SECONDARY}:${IMAGE_TAG}
 
-                        docker push \${ECR_PRIMARY}:\${IMAGE_TAG}
-                        docker push \${ECR_SECONDARY}:\${IMAGE_TAG}
+                        docker push ${ECR_PRIMARY}:${IMAGE_TAG}
+                        docker push ${ECR_SECONDARY}:${IMAGE_TAG}
                         """
                     }
                 }
@@ -189,19 +185,17 @@ pipeline {
                 ansiColor('xterm') {
                     withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
                         sh """
-                        export KUBECONFIG=\${KUBECONFIG_FILE}
+                        export KUBECONFIG=${KUBECONFIG_FILE}
 
-                        # Apply monitoring stack if present
                         if [ -d monitoring ]; then
                           kubectl apply -f monitoring/
                         else
                           echo "No monitoring/ manifests found; skipping"
                         fi
 
-                        # Example CPU-based scaling (best replaced with HPA in production)
-                        CPU=\$(kubectl top pod ${SERVICE_NAME} --no-headers 2>/dev/null | awk '{print \$2}' | sed 's/%//')
-                        if [ -n "\$CPU" ] && [ "\$CPU" -gt 80 ]; then
-                            echo "CPU usage high (\$CPU%), scaling up..."
+                        CPU=$(kubectl top pod ${SERVICE_NAME} --no-headers 2>/dev/null | awk '{print $2}' | sed 's/%//')
+                        if [ -n "$CPU" ] && [ "$CPU" -gt 80 ]; then
+                            echo "CPU usage high ($CPU%), scaling up..."
                             kubectl scale deployment ${SERVICE_NAME} --replicas=3 || true
                         else
                             echo "CPU metric unavailable or below threshold; no scaling"
