@@ -198,7 +198,7 @@ pipeline {
         success { echo "Pipeline completed successfully ✅" }
         failure { echo "Pipeline failed ❌" }
         always {
-            agent any
+            agent { label 'any' }
             archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
         }
     }
