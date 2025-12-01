@@ -178,15 +178,13 @@ pipeline {
     }
   }
 
+
+
 post {
-    success { 
-        echo "Pipeline completed successfully ✅" 
-    }
-    failure { 
-        echo "Pipeline failed ❌" 
-    }
+    success { echo "Pipeline completed successfully ✅" }
+    failure { echo "Pipeline failed ❌" }
     always {
-        echo "Archiving build artifacts..."
         archiveArtifacts artifacts: '.image_tag, .sbom.json', allowEmptyArchive: true
     }
 }
+}  // <-- Add this closing brace if it's missing
