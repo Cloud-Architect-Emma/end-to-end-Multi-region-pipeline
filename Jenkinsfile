@@ -149,11 +149,11 @@ stage('Update Trivy DB') {
 
 
 
-
 stage('Push to ECR Multi-Region') {
   steps {
-    withCredentials([string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID')]) {
+    withCredentials([string(credentialsId: 'aws-creds', variable: 'AWS_SECRET')]) {
       script {
+        // Use the injected secret if needed, e.g. for custom auth
         env.AWS_ACCOUNT_ID = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
         env.ECR_PRIMARY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}"
         env.ECR_SECONDARY  = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_SECOND_REGION}.amazonaws.com/${SERVICE_NAME}"
