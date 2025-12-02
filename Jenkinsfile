@@ -105,17 +105,21 @@ pipeline {
       }
     }
 
-    stage('Update Trivy DB') {
-      steps {
-        sh '''
-          if command -v trivy >/dev/null 2>&1; then
-            trivy --download-db-only
-          else
-            echo "Trivy not installed; skipping DB update"
-          fi
-        '''
-      }
-    }
+
+
+stage('Update Trivy DB') {
+  steps {
+    sh '''
+      if command -v trivy >/dev/null 2>&1; then
+        trivy image --refresh alpine:3.19 || true
+      else
+        echo "Trivy not installed; skipping DB update"
+      fi
+    '''
+  }
+}
+
+
 
     stage('Generate SBOM (Syft)') {
       steps {
@@ -143,28 +147,37 @@ pipeline {
       }
     }
 
-    stage('Push to ECR Multi-Region') {
-      steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
-          script {
-            env.AWS_ACCOUNT_ID = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-            env.ECR_PRIMARY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}"
-            env.ECR_SECONDARY  = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_SECOND_REGION}.amazonaws.com/${SERVICE_NAME}"
-          }
-          sh '''
-            IMAGE_TAG=$(cut -d'=' -f2 .image_tag)
-            aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
-              docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-            aws ecr get-login-password --region $AWS_SECOND_REGION | \
-              docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_SECOND_REGION}.amazonaws.com
-            docker tag $SERVICE_NAME:$IMAGE_TAG $ECR_PRIMARY:$IMAGE_TAG
-            docker tag $SERVICE_NAME:$IMAGE_TAG $ECR_SECONDARY:$IMAGE_TAG
-            docker push $ECR_PRIMARY:$IMAGE_TAG
-            docker push $ECR_SECONDARY:$IMAGE_TAG
-          '''
-        }
+
+
+
+stage('Push to ECR Multi-Region') {
+  steps {
+    withCredentials([string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID')]) {
+      script {
+        env.AWS_ACCOUNT_ID = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
+        env.ECR_PRIMARY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${SERVICE_NAME}"
+        env.ECR_SECONDARY  = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_SECOND_REGION}.amazonaws.com/${SERVICE_NAME}"
       }
+      sh '''
+        IMAGE_TAG=$(cut -d'=' -f2 .image_tag)
+
+        aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+          docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+
+        aws ecr get-login-password --region $AWS_SECOND_REGION | \
+          docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_SECOND_REGION}.amazonaws.com
+
+        docker tag $SERVICE_NAME:$IMAGE_TAG $ECR_PRIMARY:$IMAGE_TAG
+        docker tag $SERVICE_NAME:$IMAGE_TAG $ECR_SECONDARY:$IMAGE_TAG
+
+        docker push $ECR_PRIMARY:$IMAGE_TAG
+        docker push $ECR_SECONDARY:$IMAGE_TAG
+      '''
     }
+  }
+}
+
+
 
     stage('Observability & Predictive Scaling') {
       when { expression { params.DEPLOY_TO_K8S } }
