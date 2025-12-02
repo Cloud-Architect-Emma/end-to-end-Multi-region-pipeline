@@ -87,19 +87,25 @@ pipeline {
 
 stage('Build Docker Image') {
   steps {
-    sh '''
-      SHORT_SHA=$(git rev-parse --short HEAD)
-      IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
+    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+      sh '''
+        # Log in to Docker Hub using Jenkins credentials
+        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-      echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
-      echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        IMAGE_TAG="${BRANCH_NAME}-${BUILD_NUMBER}-${SHORT_SHA}"
 
-      docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
-        -f muti-region-project/microservices-demo/src/cartservice/Dockerfile \
-        muti-region-project/microservices-demo/src/cartservice/
-    '''
+        echo "IMAGE_TAG=$IMAGE_TAG" > .image_tag
+        echo "Building image: $SERVICE_NAME:$IMAGE_TAG"
+
+        docker build -t "$SERVICE_NAME:$IMAGE_TAG" \
+          -f muti-region-project/microservices-demo/src/cartservice/Dockerfile \
+          muti-region-project/microservices-demo/src/cartservice/
+      '''
+    }
   }
 }
+
 
     stage('Generate SBOM (Syft)') {
       steps {
