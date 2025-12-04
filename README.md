@@ -75,8 +75,9 @@ This project implements a **3-Tier Multi-Region Cloud-Native Platform** with **C
                 ┌─────────┴───────────┐
                 │ Grafana (Dashboards)│
                 └─────────────────────┘
+---
 
-##End‑to‑End Architecture Diagram
+## End‑to‑End Architecture Diagram
 ![Architecture Diagram](project-screenshot/end‑to‑end architecture diagram.PNG)  
 
 
