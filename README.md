@@ -1,4 +1,4 @@
-# Multi-Region 3-Tier Cloud-Native Platform
+# End-to-End Multi-Region 3-Tier Cloud-Native Platform with  Jenkins Multi-Pipeline CI/CD
 
 ## Project Overview
 This project implements a **3-Tier Multi-Region Cloud-Native Platform** with **CI/CD automation, containerization, and observability**. The platform is designed for high availability, scalability, and security using modern DevOps practices.  
