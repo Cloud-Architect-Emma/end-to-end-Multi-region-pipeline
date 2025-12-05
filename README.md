@@ -94,6 +94,9 @@ The application is deployed across multiple AWS regions using Terraform modules 
 ![Pipeline Screenshot ](project-screenshot/Jenkins-pipeline.PNG)
 
 
+
+## Pipeline Stages
+
 | Stage | Description | Approx Duration |
 |-------|-------------|----------------|
 | Checkout SCM | Clone repository | 27s |
