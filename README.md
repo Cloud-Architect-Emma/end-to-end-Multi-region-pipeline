@@ -6,7 +6,7 @@ This project implements a **3-Tier Multi-Region Cloud-Native Platform** with **C
 **Key Features:**
 - 3-Tier architecture: Web/API, Application, Data layers  
 - Multi-region deployment for high availability and disaster recovery  
-- **CI/CD pipeline using Jenkins with automated testing, vulnerability scanning, and rollback  
+- CI/CD pipeline using Jenkins with automated testing, vulnerability scanning, and rollback  
 - Containerized using Docker and deployed on Amazon EKS (Kubernetes)  
 - Observability with Prometheus, Grafana, and monitoring dashboards  
 - Predictive scaling for cost optimization and load handling  
